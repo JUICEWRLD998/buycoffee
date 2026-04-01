@@ -1,0 +1,89 @@
+:root {
+  --bg: #f7f5f1;
+  --surface: #ffffff;
+  --text: #1f1f1f;
+  --muted: #666666;
+  --primary: #2c7a7b;
+  --primary-hover: #245f60;
+  --border: #e6e2dc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  width: min(760px, 92%);
+  margin: 2rem auto;
+}
+
+h1 {
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.65rem 0.95rem;
+  background: var(--primary);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font: inherit;
+}
+
+.status {
+  color: var(--muted);
+  margin-bottom: 0;
+}
+
+#activityList {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+#activityList li {
+  margin: 0.35rem 0;
+}
