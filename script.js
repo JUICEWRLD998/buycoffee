@@ -6,7 +6,6 @@ const walletStatus = document.getElementById('walletStatus');
 const activityList = document.getElementById('activityList');
 
 const COFFEE_RECIPIENT_ADDRESS = '0xb75F9F59Aa4b90d90eD00EEcf49aDE1e3514e383';
-const PREFERRED_WITHDRAW_ADDRESS = '0xb75F9F59Aa4b90d90eD00EEcf49aDE1e3514e383';
 
 let isConnected = false;
 let connectedAccount = '';
@@ -23,10 +22,6 @@ function hasMetaMask() {               /*this checks if the user has metamask in
 
 function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-function isHexAddress(value) {
-  return /^0x[a-fA-F0-9]{40}$/.test(String(value).trim());
 }
 
 function parseEthToWei(ethValue) {
@@ -190,16 +185,7 @@ async function withdrawCoffeeFunds() {
     return;
   }
 
-  const destination = window.prompt('Withdraw to which wallet address?', PREFERRED_WITHDRAW_ADDRESS);
-  if (!destination) {
-    addActivity('Withdraw canceled.');
-    return;
-  }
-
-  if (!isHexAddress(destination)) {
-    addActivity('Invalid destination address.');
-    return;
-  }
+  const destination = connectedAccount;
 
   try {
     const balanceHex = await window.ethereum.request({
