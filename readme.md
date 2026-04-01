@@ -10,7 +10,7 @@ For now, this version does not use smart contracts. Buy Coffee works by sending 
 - Fallback message when MetaMask is not installed
 - Buy Coffee button (sends ETH transaction via MetaMask)
 - Get Balance button (reads connected wallet balance)
-- Withdraw button (not implemented yet)
+- Withdraw button (any connected wallet can transfer out to chosen destination)
 - Basic form inputs for buyer name, message, and coffee amount
 - Activity log in the UI
 
@@ -28,7 +28,8 @@ For now, this version does not use smart contracts. Buy Coffee works by sending 
 4. Enter an amount and click Buy Coffee.
 5. Approve the transaction in MetaMask.
 6. Click Get Balance to read the latest wallet balance.
-7. If MetaMask is missing, the app shows: Please install MetaMask.
+7. Click Withdraw, confirm or edit the prefilled destination address, then approve in MetaMask.
+8. If MetaMask is missing, the app shows: Please install MetaMask.
 
 ## Next Step (Later)
 

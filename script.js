@@ -6,6 +6,7 @@ const walletStatus = document.getElementById('walletStatus');
 const activityList = document.getElementById('activityList');
 
 const COFFEE_RECIPIENT_ADDRESS = '0xb75F9F59Aa4b90d90eD00EEcf49aDE1e3514e383';
+const PREFERRED_WITHDRAW_ADDRESS = '0xb75F9F59Aa4b90d90eD00EEcf49aDE1e3514e383';
 
 let isConnected = false;
 let connectedAccount = '';
@@ -16,12 +17,16 @@ function addActivity(text) {
   activityList.prepend(item);
 }
 
-function hasMetaMask() { //this checks if the user has metamask installed in the browser
+function hasMetaMask() {               /*this checks if the user has metamask installed in the browser*/
   return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
 }
 
 function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function isHexAddress(value) {
+  return /^0x[a-fA-F0-9]{40}$/.test(String(value).trim());
 }
 
 function parseEthToWei(ethValue) {
@@ -105,7 +110,7 @@ balanceBtn.addEventListener('click', () => {
 });
 
 withdrawBtn.addEventListener('click', () => {
-  addActivity('Withdraw is not implemented yet (smart contract step).');
+  withdrawCoffeeFunds();
 });
 
 coffeeForm.addEventListener('submit', (event) => {
@@ -176,6 +181,75 @@ async function buyCoffee() {
     }
 
     addActivity(`Buy Coffee failed: ${error && error.message ? error.message : 'Unknown error'}`);
+  }
+}
+
+async function withdrawCoffeeFunds() {
+  if (!isConnected || !connectedAccount) {
+    addActivity('Connect wallet first.');
+    return;
+  }
+
+  const destination = window.prompt('Withdraw to which wallet address?', PREFERRED_WITHDRAW_ADDRESS);
+  if (!destination) {
+    addActivity('Withdraw canceled.');
+    return;
+  }
+
+  if (!isHexAddress(destination)) {
+    addActivity('Invalid destination address.');
+    return;
+  }
+
+  try {
+    const balanceHex = await window.ethereum.request({
+      method: 'eth_getBalance',
+      params: [connectedAccount, 'latest'],
+    });
+    const gasPriceHex = await window.ethereum.request({
+      method: 'eth_gasPrice',
+      params: [],
+    });
+
+    const balanceWei = BigInt(balanceHex);
+    const gasPriceWei = BigInt(gasPriceHex);
+    const transferGasLimit = 21000n;
+    const gasCostWei = gasPriceWei * transferGasLimit;
+    const sendValueWei = balanceWei - gasCostWei;
+
+    if (sendValueWei <= 0n) {
+      addActivity('Not enough balance to withdraw after gas.');
+      return;
+    }
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: connectedAccount,
+          to: destination,
+          gas: `0x${transferGasLimit.toString(16)}`,
+          value: `0x${sendValueWei.toString(16)}`,
+        },
+      ],
+    });
+
+    addActivity(`Withdraw submitted to ${shortAddress(destination)}. Tx: ${txHash}`);
+
+    const receipt = await waitForReceipt(txHash);
+    if (receipt && receipt.status === '0x1') {
+      addActivity('Withdraw confirmed.');
+      return;
+    }
+
+    addActivity('Withdraw submitted. Confirmation still pending.');
+  } catch (error) {
+    if (error && error.code === 4001) {
+      addActivity('Withdraw rejected in MetaMask.');
+      return;
+    }
+
+    addActivity(`Withdraw failed: ${error && error.message ? error.message : 'Unknown error'}`);
   }
 }
 
