@@ -1,5 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const connectBtn = document.getElementById('connectBtn');
 const balanceBtn = document.getElementById('balanceBtn');
 const withdrawBtn = document.getElementById('withdrawBtn');
