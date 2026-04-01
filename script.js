@@ -5,6 +5,8 @@ const coffeeForm = document.getElementById('coffeeForm');
 const walletStatus = document.getElementById('walletStatus');
 const activityList = document.getElementById('activityList');
 
+const COFFEE_RECIPIENT_ADDRESS = '0xb75F9F59Aa4b90d90eD00EEcf49aDE1e3514e383';
+
 let isConnected = false;
 let connectedAccount = '';
 
@@ -14,12 +16,54 @@ function addActivity(text) {
   activityList.prepend(item);
 }
 
-function hasMetaMask() {
+function hasMetaMask() { //this checks if the user has metamask installed in the browser
   return typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
 }
 
 function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function parseEthToWei(ethValue) {
+  const normalized = String(ethValue).trim();
+  if (!normalized || Number.isNaN(Number(normalized)) || Number(normalized) <= 0) {
+    throw new Error('Invalid ETH amount.');
+  }
+
+  const [wholePart, decimalPart = ''] = normalized.split('.');
+  if (decimalPart.length > 18) {
+    throw new Error('Too many decimal places. Max is 18.');
+  }
+
+  const wholeWei = BigInt(wholePart || '0') * (10n ** 18n);
+  const decimalWei = BigInt((decimalPart + '0'.repeat(18)).slice(0, 18));
+  return wholeWei + decimalWei;
+}
+
+function formatWeiToEth(weiHex) {
+  const wei = BigInt(weiHex);
+  const whole = wei / (10n ** 18n);
+  const fraction = wei % (10n ** 18n);
+  const fractionText = fraction.toString().padStart(18, '0').replace(/0+$/, '');
+  return fractionText ? `${whole.toString()}.${fractionText}` : whole.toString();
+}
+
+async function waitForReceipt(txHash, retries = 20, delayMs = 1500) {
+  for (let i = 0; i < retries; i += 1) {
+    const receipt = await window.ethereum.request({
+      method: 'eth_getTransactionReceipt',
+      params: [txHash],
+    });
+
+    if (receipt) {
+      return receipt;
+    }
+
+    // Poll for confirmation without adding extra dependencies.
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  return null;
 }
 
 async function connectWallet() {
@@ -57,7 +101,7 @@ async function connectWallet() {
 connectBtn.addEventListener('click', connectWallet);
 
 balanceBtn.addEventListener('click', () => {
-  addActivity('Get Balance is not implemented yet (smart contract step).');
+  getBalance();
 });
 
 withdrawBtn.addEventListener('click', () => {
@@ -72,8 +116,68 @@ coffeeForm.addEventListener('submit', (event) => {
     return;
   }
 
-  addActivity('Buy Coffee is not implemented yet (smart contract step).');
+  buyCoffee();
 });
+
+async function getBalance() {
+  if (!isConnected || !connectedAccount) {
+    addActivity('Connect wallet first.');
+    return;
+  }
+
+  try {
+    const balanceHex = await window.ethereum.request({
+      method: 'eth_getBalance',
+      params: [connectedAccount, 'latest'],
+    });
+
+    const ethBalance = formatWeiToEth(balanceHex);
+    addActivity(`Balance for ${shortAddress(connectedAccount)}: ${ethBalance} ETH`);
+  } catch (error) {
+    addActivity(`Failed to fetch balance: ${error && error.message ? error.message : 'Unknown error'}`);
+  }
+}
+
+async function buyCoffee() {
+  const amountInput = document.getElementById('amount');
+  const name = document.getElementById('name').value.trim() || 'Anonymous';
+  const amountText = amountInput.value;
+
+  try {
+    const weiValue = parseEthToWei(amountText);
+
+    // No contract for now: send ETH directly to the configured recipient wallet.
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: connectedAccount,
+          to: COFFEE_RECIPIENT_ADDRESS,
+          value: `0x${weiValue.toString(16)}`,
+        },
+      ],
+    });
+
+    addActivity(`${name} bought coffee for ${shortAddress(COFFEE_RECIPIENT_ADDRESS)}. Tx sent: ${txHash}`);
+
+    const receipt = await waitForReceipt(txHash);
+    if (receipt && receipt.status === '0x1') {
+      addActivity('Transaction confirmed.');
+      coffeeForm.reset();
+      amountInput.value = '0.001';
+      return;
+    }
+
+    addActivity('Transaction submitted. Confirmation still pending.');
+  } catch (error) {
+    if (error && error.code === 4001) {
+      addActivity('Transaction rejected in MetaMask.');
+      return;
+    }
+
+    addActivity(`Buy Coffee failed: ${error && error.message ? error.message : 'Unknown error'}`);
+  }
+}
 
 if (hasMetaMask()) {
   window.ethereum.on('accountsChanged', (accounts) => {
